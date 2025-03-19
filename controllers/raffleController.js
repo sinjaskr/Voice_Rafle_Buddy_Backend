@@ -1,5 +1,6 @@
 // controllers/raffleController.js
 const Raffle = require('../Models/Raffle');
+const mongoose = require('mongoose');
 
 // Create a new raffle
 const createRaffle = async (req, res) => {
@@ -49,43 +50,59 @@ const getRaffleById = async (req, res) => {
 
 // Update a raffle
 const updateRaffle = async (req, res) => {
-  const { title, description, startDate, endDate, price, category, status } = req.body;
-
   try {
-    const raffle = await Raffle.findById(req.params.id);
-    if (!raffle) {
-      return res.status(404).json({ message: 'Raffle not found' });
+    const { title, description, startDate, endDate, price, category, status } = req.body;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid raffle ID' });
     }
+
+    console.log('Updating raffle with data:', req.body); // Debugging
+
+    // Find and update raffle
+    const raffle = await Raffle.findById(req.params.id);
+    if (!raffle) return res.status(404).json({ message: 'Raffle not found' });
 
     raffle.title = title || raffle.title;
     raffle.description = description || raffle.description;
-    raffle.startDate = startDate || raffle.startDate;
-    raffle.endDate = endDate || raffle.endDate;
-    raffle.price = price || raffle.price;
+    raffle.startDate = startDate ? new Date(startDate) : raffle.startDate;
+    raffle.endDate = endDate ? new Date(endDate) : raffle.endDate;
+    raffle.price = price ?? raffle.price;
     raffle.category = category || raffle.category;
     raffle.status = status || raffle.status;
 
     await raffle.save();
     res.json(raffle);
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating raffle:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-// Delete a raffle
+
+
 const deleteRaffle = async (req, res) => {
   try {
+    // Check if the provided ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid raffle ID' });
+    }
+
     const raffle = await Raffle.findById(req.params.id);
     if (!raffle) {
       return res.status(404).json({ message: 'Raffle not found' });
     }
 
-    await raffle.remove();
-    res.json({ message: 'Raffle deleted' });
+    await Raffle.findByIdAndDelete(req.params.id); // Use this instead of `.remove()`
+    
+    res.json({ message: 'Raffle deleted successfully' });
   } catch (err) {
+    console.error(err); // Log the error for debugging
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 module.exports = {
   createRaffle,

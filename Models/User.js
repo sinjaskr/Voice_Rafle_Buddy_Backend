@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
   failedLoginAttempts: { type: Number, default: 0 }, // Track failed attempts
+  emailVerified: { type: Boolean, default: false }, // New field
+  verificationToken: { type: String }, // New field
   isLocked: { type: Boolean, default: false }, // Lock account after too many failed attempts
   lockUntil: { type: Date }, // Time until account is locked
   tickets: [
@@ -25,11 +27,6 @@ userSchema.methods.comparePassword = async function (password) {
 };
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
+
 
 module.exports = mongoose.model('User', userSchema);
